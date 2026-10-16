@@ -1,0 +1,7 @@
+name: ClackedIceLCP
+version: '${project.version}'
+main: org.lordalex.clackedicelcp.ClackedIceLCP
+commands:
+  icemaze:
+    description: Управление мини-игрой
+    usage: /icemaze <reset>

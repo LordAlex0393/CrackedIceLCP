@@ -1,0 +1,7 @@
+name: ClackedIceLCP
+version: '1.0-SNAPSHOT'
+main: org.lordalex.clackedicelcp.ClackedIceLCP
+commands:
+  icemaze:
+    description: Управление мини-игрой
+    usage: /icemaze <reset>
