@@ -1,6 +1,9 @@
 org\lordalex\clackedicelcp\Utils\ConfigMaze.class
 org\lordalex\clackedicelcp\Events\MoveListener.class
+org\lordalex\clackedicelcp\Maze.class
 org\lordalex\clackedicelcp\Game$BlockKey.class
+org\lordalex\clackedicelcp\PlayerProgress.class
+org\lordalex\clackedicelcp\Utils\ConfigMazes.class
 org\lordalex\clackedicelcp\Utils\ColorUtil.class
 org\lordalex\clackedicelcp\Utils\Config.class
 org\lordalex\clackedicelcp\ClackedIceLCP.class

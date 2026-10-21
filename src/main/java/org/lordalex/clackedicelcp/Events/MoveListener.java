@@ -10,7 +10,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.lordalex.clackedicelcp.ClackedIceLCP;
 import org.lordalex.clackedicelcp.Game;
-import org.lordalex.clackedicelcp.PlayerInfo;
+import org.lordalex.clackedicelcp.GameState;
+import org.lordalex.clackedicelcp.Maze;
 
 public class MoveListener implements Listener {
 
@@ -26,7 +27,6 @@ public class MoveListener implements Listener {
         Location to = e.getTo();
         if (to == null) return;
 
-        // реагируем только на смену блока
         if (from.getBlockX() == to.getBlockX()
                 && from.getBlockY() == to.getBlockY()
                 && from.getBlockZ() == to.getBlockZ()) {
@@ -34,25 +34,39 @@ public class MoveListener implements Listener {
         }
 
         Player p = e.getPlayer();
-        Block under = to.clone().subtract(0, 1, 0).getBlock();
-
         Game game = plugin.getGame();
 
-        // === СЛУЧАЙ 1: другой игрок наступил на "обычный" лёд (прожатый) ===
-        if (under.getType() == Material.ICE) {
-            // если этот блок — часть лабиринта и уже прожат
-            if (game.isMazeBlock(under) && game.isPressed(under)) {
-                // проверяем: тот, кто наступил, — НЕ тот, кто первый стартовал?
-                // по сути, любой игрок, который наступил на уже прожатый ICE — фейл.
-                game.onIceStepByOther(p, under);
-            }
-            return;
-        }
+        if (game.isIgnored(p.getUniqueId())) return;
 
-        // === СЛУЧАЙ 2: игрок наступил на плотный лёд — основная механика ===
-        if (under.getType() == Material.PACKED_ICE) {
-            if (game.isMazeBlock(under)) {
-                game.onPlayerStep(p, under);
+        int steps = Math.max(
+                Math.abs(to.getBlockX() - from.getBlockX()),
+                Math.max(
+                        Math.abs(to.getBlockY() - from.getBlockY()),
+                        Math.abs(to.getBlockZ() - from.getBlockZ())
+                )
+        );
+        if (steps <= 0) steps = 1;
+
+        for (int i = 1; i <= steps; i++) {
+            double t = (double) i / steps;
+            double x = from.getX() + (to.getX() - from.getX()) * t;
+            double y = from.getY() + (to.getY() - from.getY()) * t;
+            double z = from.getZ() + (to.getZ() - from.getZ()) * t;
+
+            Block under = new Location(p.getWorld(),
+                    Math.floor(x), Math.floor(y) - 1, Math.floor(z)).getBlock();
+
+            Maze maze = game.getMazeByBlock(under);
+            if (maze == null) continue;
+
+            if (under.getType() == Material.PACKED_ICE) {
+                maze.onPlayerStep(p, under);
+            } else if (under.getType() == Material.ICE) {
+                maze.onIceStepByOther(p, under);
+            }
+
+            if (maze.getState() == GameState.RESETTING || maze.getState() == GameState.WAITING) {
+                break;
             }
         }
     }
