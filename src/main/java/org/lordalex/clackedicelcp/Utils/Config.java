@@ -17,12 +17,15 @@ public class Config {
     @JsonProperty("platforms")
     private Map<String, ConfigPlatform> platforms;
 
+    @JsonProperty("snowmen")
+    private Map<String, ConfigSnowman> snowmen;
+
     public boolean isShowTime() { return showTime; }
     public Map<String, ConfigMaze> getMazes() { return mazes; }
-
-    // Тот самый геттер:
     public Map<String, ConfigPlatform> getPlatforms() { return platforms; }
+    public Map<String, ConfigSnowman> getSnowmen() { return snowmen; }
 
     public void setMazes(Map<String, ConfigMaze> mazes) { this.mazes = mazes; }
     public void setPlatforms(Map<String, ConfigPlatform> platforms) { this.platforms = platforms; }
+    public void setSnowmen(Map<String, ConfigSnowman> snowmen) { this.snowmen = snowmen; }
 }

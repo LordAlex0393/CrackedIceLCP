@@ -9,6 +9,7 @@ import org.lordalex.clackedicelcp.Commands.IceCommand;
 import org.lordalex.clackedicelcp.Events.MoveListener;
 import org.lordalex.clackedicelcp.Events.QuitListener;
 import org.lordalex.clackedicelcp.Platforms.PlatformManager;
+import org.lordalex.clackedicelcp.Snowmen.SnowmanManager;
 import org.lordalex.clackedicelcp.Utils.Config;
 import org.lordalex.clackedicelcp.Utils.YmlParser;
 
@@ -18,6 +19,7 @@ public final class ClackedIceLCP extends JavaPlugin {
     private static ClackedIceLCP instance;
     private Game game;
     private PlatformManager platformManager;
+    private SnowmanManager snowmanManager;
 
     @Override
     public void onEnable() {
@@ -52,6 +54,11 @@ public final class ClackedIceLCP extends JavaPlugin {
             }
             getCommand("event").setExecutor(new EventCommand(this));
 
+            this.snowmanManager = new SnowmanManager(this);
+            if (config.getSnowmen() != null) {
+                snowmanManager.loadAll(config.getSnowmen());
+            }
+
             BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
             scheduler.scheduleSyncRepeatingTask(this, () -> {
                 for (World world : Bukkit.getServer().getWorlds()) {
@@ -71,11 +78,13 @@ public final class ClackedIceLCP extends JavaPlugin {
     @Override
     public void onDisable() {
         platformManager.stopAll();
+        if (snowmanManager != null) snowmanManager.removeAll(); // Убираем снеговиков при выключении сервера
         if (game != null) game.resetAll();
         instance = null;
     }
 
     public static ClackedIceLCP getInstance() { return instance; }
+    public SnowmanManager getSnowmanManager() { return snowmanManager; }
     public Game getGame() { return game; }
 
     public PlatformManager getPlatformManager() {

@@ -20,17 +20,22 @@ public class EventCommand implements CommandExecutor {
 
         if (args[0].equalsIgnoreCase("start")) {
             plugin.getPlatformManager().startAll();
-            sender.sendMessage(ColorUtil.get("&a&l✔ &aПлатформы запущены."));
+            plugin.getSnowmanManager().spawnAll(); // Спавним
+            sender.sendMessage(ColorUtil.get("&a&l✔ &aИвент запущен."));
             return true;
         }
+
         if (args[0].equalsIgnoreCase("stop")) {
             plugin.getPlatformManager().stopAll();
-            sender.sendMessage(ColorUtil.get("&c&l✖ &cПлатформы остановлены."));
+            plugin.getSnowmanManager().removeAll(); // Убираем
+            sender.sendMessage(ColorUtil.get("&c&l✖ &cИвент остановлен."));
             return true;
         }
+
         if (args[0].equalsIgnoreCase("reset")) {
             plugin.getPlatformManager().resetAll();
-            sender.sendMessage(ColorUtil.get("&a&l✔ &aПлатформы сброшены в исходное состояние."));
+            plugin.getSnowmanManager().removeAll(); // При ресете тоже убираем
+            sender.sendMessage(ColorUtil.get("&a&l✔ &aИвент сброшен."));
             return true;
         }
         return true;
