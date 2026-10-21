@@ -33,6 +33,8 @@ public class Game {
     }
 
     public boolean isShowTime() { return showTime; }
+    public void setShowTime(boolean b) { this.showTime = b; }
+
     public Collection<Maze> getMazes() { return mazes.values(); }
     public Maze getMazeById(String id) { return mazes.get(id); }
     public List<String> getOrderedMazeIds() { return orderedMazeIds; }
@@ -67,9 +69,23 @@ public class Game {
         return true;
     }
 
+    // ===================== РЕСЕТ =====================
+
     public void resetAll() {
         for (Maze m : mazes.values()) m.reset();
+        progressMap.clear(); // Сбрасываем прогресс и время всех игроков
     }
+
+    public void resetMaze(String id) {
+        Maze m = mazes.get(id);
+        if (m != null) {
+            m.reset();
+            // Сбрасываем прогресс всем игрокам, так как последовательность уровней нарушена
+            progressMap.clear();
+        }
+    }
+
+    // ===================== ФИНИШ =====================
 
     public boolean onMazeFinished(Player p, Maze maze, long elapsed, long levelTotal) {
         UUID uuid = p.getUniqueId();
@@ -117,10 +133,7 @@ public class Game {
     }
 
     private void printSummary(Player p, PlayerProgress prog) {
-        // Если флаг выключен — вообще ничего не пишем
-        if (!showTime) {
-            return;
-        }
+        if (!showTime) return;
 
         StringBuilder sb = new StringBuilder();
         sb.append("&6&l=== ИТОГ ===\n");
@@ -135,7 +148,6 @@ public class Game {
                     .append("&7)\n");
         }
 
-        // Общее время от первого шага на первом уровне до последнего шага на последнем
         long chainStart = prog.getChainStart();
         long totalRealTime = System.currentTimeMillis() - chainStart;
 
@@ -148,6 +160,7 @@ public class Game {
         p.sendMessage(org.lordalex.clackedicelcp.Utils.ColorUtil.get(sb.toString()));
     }
 
+    // ===================== КЛЮЧ БЛОКА =====================
 
     public static class BlockKey {
         public final int x, y, z;

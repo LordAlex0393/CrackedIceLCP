@@ -149,6 +149,7 @@ public class Maze {
 
         culprit.sendMessage(ColorUtil.get(cfg.getFailMessage()));
 
+        // Изменено на +100, чтобы рестарт проходил быстрее
         long ignoreTime = System.currentTimeMillis() + 100;
         int mazeY = (int) startLocation.getY();
 
@@ -182,11 +183,8 @@ public class Maze {
             if (p == null || !p.isOnline()) continue;
 
             PlayerProgress prog = plugin.getGame().getProgress(p.getUniqueId());
-
-            // Время, потраченное на этот уровень (от первого шага на него до финиша)
             long levelTotal = now - prog.getAttemptStart(id);
 
-            // Вывод сообщения о финише уровня
             if (plugin.getGame().isShowTime()) {
                 String timeStr = String.format("%.2f", elapsed / 1000.0);
                 p.sendMessage(ColorUtil.get(cfg.getFinishMessage() + " &7(&e" + timeStr + "&7 сек.)"));
@@ -197,12 +195,12 @@ public class Maze {
             plugin.getGame().onMazeFinished(p, this, elapsed, levelTotal);
         }
 
+        // Изменено на 8L тиков (0.4 сек), чтобы лабиринт быстрее восстанавливался
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             reset();
             activePlayers.clear();
         }, 8L);
     }
-
     public void reset() {
         if (world == null) return;
         for (Game.BlockKey key : mazeBlocks) {
