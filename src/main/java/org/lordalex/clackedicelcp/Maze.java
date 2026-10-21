@@ -13,7 +13,6 @@ import org.lordalex.clackedicelcp.Utils.YmlParser;
 import java.util.*;
 
 public class Maze {
-
     private final ClackedIceLCP plugin;
     private final String id;
     private final ConfigMaze cfg;
@@ -22,9 +21,11 @@ public class Maze {
     private final Set<Game.BlockKey> pressedBlocks = new HashSet<>();
     private final Map<UUID, PlayerInfo> activePlayers = new HashMap<>();
 
+    private final List<Location> glassLocations = new ArrayList<>();
+    private final List<Location> redstoneLocations = new ArrayList<>();
+
     private World world;
     private Location startLocation;
-
     private long startTime;
     private boolean timerRunning;
     private GameState state = GameState.WAITING;
@@ -40,14 +41,13 @@ public class Maze {
         mazeBlocks.clear();
         pressedBlocks.clear();
         activePlayers.clear();
+        glassLocations.clear();
+        redstoneLocations.clear();
         timerRunning = false;
         state = GameState.WAITING;
 
         this.world = Bukkit.getWorld(cfg.getWorld());
-        if (world == null) {
-            plugin.getLogger().severe("[Maze " + id + "] World not found: " + cfg.getWorld());
-            return;
-        }
+        if (world == null) return;
 
         Location c1 = YmlParser.parseLocation(world, cfg.getCorner1());
         Location c2 = YmlParser.parseLocation(world, cfg.getCorner2());
@@ -72,38 +72,32 @@ public class Maze {
             }
         }
 
+        if (cfg.getGlassBlocks() != null) {
+            for (String s : cfg.getGlassBlocks()) glassLocations.add(YmlParser.parseLocation(world, s));
+        }
+        if (cfg.getRedstoneBlocks() != null) {
+            for (String s : cfg.getRedstoneBlocks()) redstoneLocations.add(YmlParser.parseLocation(world, s));
+        }
+
         this.startLocation = YmlParser.parseLocation(world, cfg.getStart());
-        plugin.getLogger().info("[Maze " + id + "] Loaded: " + mazeBlocks.size() + " blocks");
     }
 
-    public boolean isMazeBlock(Block b) {
-        return mazeBlocks.contains(new Game.BlockKey(b.getX(), b.getY(), b.getZ()));
-    }
-
-    public boolean isPressed(Block b) {
-        return pressedBlocks.contains(new Game.BlockKey(b.getX(), b.getY(), b.getZ()));
-    }
+    public boolean isMazeBlock(Block b) { return mazeBlocks.contains(new Game.BlockKey(b.getX(), b.getY(), b.getZ())); }
+    public boolean isPressed(Block b) { return pressedBlocks.contains(new Game.BlockKey(b.getX(), b.getY(), b.getZ())); }
 
     public void onPlayerStep(Player p, Block under) {
         if (state == GameState.RESETTING) return;
         if (plugin.getGame().isIgnored(p.getUniqueId())) return;
 
         activePlayers.computeIfAbsent(p.getUniqueId(), k -> new PlayerInfo(p));
-
         PlayerProgress prog = plugin.getGame().getProgress(p.getUniqueId());
 
-        if (plugin.getGame().isFirstMazeInChain(this)) {
-            prog.startChainIfNeeded(System.currentTimeMillis());
-        }
-
+        if (plugin.getGame().isFirstMazeInChain(this)) prog.startChainIfNeeded(System.currentTimeMillis());
         prog.startAttemptIfNeeded(id, System.currentTimeMillis());
 
-        if (!timerRunning) {
-            startTimer(p, prog);
-        }
+        if (!timerRunning) startTimer(p);
 
         Game.BlockKey key = new Game.BlockKey(under.getX(), under.getY(), under.getZ());
-
         if (pressedBlocks.contains(key)) {
             failAll(p);
             return;
@@ -112,9 +106,7 @@ public class Maze {
         pressedBlocks.add(key);
         under.setType(Material.ICE);
 
-        if (pressedBlocks.size() == mazeBlocks.size()) {
-            finishAll();
-        }
+        if (pressedBlocks.size() == mazeBlocks.size()) finishAll();
     }
 
     public void onIceStepByOther(Player other, Block under) {
@@ -123,17 +115,12 @@ public class Maze {
         failAll(other);
     }
 
-    private void startTimer(Player p, PlayerProgress prog) {
-        if (state == GameState.RESETTING) return;
-        if (timerRunning) return;
-
+    private void startTimer(Player p) {
+        if (state == GameState.RESETTING || timerRunning) return;
         this.startTime = System.currentTimeMillis();
         this.timerRunning = true;
         this.state = GameState.RUNNING;
-
-        if (plugin.getGame().isShowTime()) {
-            p.sendMessage(ColorUtil.get("&eУровень " + id + " начался!"));
-        }
+        if (plugin.getGame().isShowTime()) p.sendMessage(ColorUtil.get("&eУровень " + id + " начался!"));
     }
 
     private long stopTimer() {
@@ -146,25 +133,19 @@ public class Maze {
     public void failAll(Player culprit) {
         stopTimer();
         state = GameState.RESETTING;
-
         culprit.sendMessage(ColorUtil.get(cfg.getFailMessage()));
 
-        // Изменено на +100, чтобы рестарт проходил быстрее
         long ignoreTime = System.currentTimeMillis() + 100;
         int mazeY = (int) startLocation.getY();
 
         for (PlayerInfo pi : new ArrayList<>(activePlayers.values())) {
             Player p = pi.getPlayer();
             if (p == null || !p.isOnline()) continue;
-
             if (Math.abs(p.getLocation().getBlockY() - mazeY) > 1) continue;
-
             p.teleport(startLocation);
             plugin.getGame().setIgnore(p.getUniqueId(), ignoreTime);
-
             if (!p.getUniqueId().equals(culprit.getUniqueId())) {
-                p.sendMessage(ColorUtil.get("&cИгрок &e" + culprit.getName()
-                        + " &cсломал уровень " + id + ". Рестарт."));
+                p.sendMessage(ColorUtil.get("&cИгрок &e" + culprit.getName() + " &cсломал уровень."));
             }
         }
 
@@ -186,37 +167,50 @@ public class Maze {
             long levelTotal = now - prog.getAttemptStart(id);
 
             if (plugin.getGame().isShowTime()) {
-                String timeStr = String.format("%.2f", elapsed / 1000.0);
-                p.sendMessage(ColorUtil.get(cfg.getFinishMessage() + " &7(&e" + timeStr + "&7 сек.)"));
+                p.sendMessage(ColorUtil.get(cfg.getFinishMessage() + " &7(&e" + String.format("%.2f", elapsed / 1000.0) + "&7 сек.)"));
             } else {
                 p.sendMessage(ColorUtil.get(cfg.getFinishMessage()));
             }
-
             plugin.getGame().onMazeFinished(p, this, elapsed, levelTotal);
         }
 
-        // Изменено на 8L тиков (0.4 сек), чтобы лабиринт быстрее восстанавливался
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             reset();
             activePlayers.clear();
         }, 8L);
     }
+
+    // ВАЖНО: Тут мы НЕ трогаем стекло, оно восстанавливается только в Game.resetAll()
     public void reset() {
         if (world == null) return;
         for (Game.BlockKey key : mazeBlocks) {
-            Block b = world.getBlockAt(key.x, key.y, key.z);
-            b.setType(Material.PACKED_ICE);
+            world.getBlockAt(key.x, key.y, key.z).setType(Material.PACKED_ICE);
         }
         pressedBlocks.clear();
         timerRunning = false;
         state = GameState.WAITING;
     }
 
+    public void restoreBarriers() {
+        for (Location loc : glassLocations) loc.getBlock().setType(Material.GLASS);
+        for (Location loc : redstoneLocations) loc.getBlock().setType(Material.REDSTONE_BLOCK);
+    }
+
+    public void breakBarriers() {
+        for (Location loc : glassLocations) loc.getBlock().setType(Material.AIR);
+        for (Location loc : redstoneLocations) loc.getBlock().setType(Material.EMERALD_BLOCK); // Изумрудный (зеленый)
+    }
+
+    public void teleportToStart(Player p) {
+        if (startLocation != null) {
+            p.teleport(startLocation);
+            plugin.getGame().setIgnore(p.getUniqueId(), System.currentTimeMillis() + 100);
+        }
+    }
+
     public String getId() { return id; }
     public GameState getState() { return state; }
     public ConfigMaze getCfg() { return cfg; }
-    public Set<Game.BlockKey> getMazeBlocks() { return mazeBlocks; }
-    public Map<UUID, PlayerInfo> getActivePlayers() { return activePlayers; }
     public int getMazeBlocksCount() { return mazeBlocks.size(); }
-    public Location getStartLocation() { return startLocation; }
+    public Map<UUID, PlayerInfo> getActivePlayers() { return activePlayers; }
 }

@@ -7,6 +7,7 @@ org\lordalex\clackedicelcp\Utils\ConfigMazes.class
 org\lordalex\clackedicelcp\Utils\ColorUtil.class
 org\lordalex\clackedicelcp\Utils\Config.class
 org\lordalex\clackedicelcp\ClackedIceLCP.class
+org\lordalex\clackedicelcp\GameMode.class
 org\lordalex\clackedicelcp\Utils\YmlParser.class
 org\lordalex\clackedicelcp\Events\QuitListener.class
 org\lordalex\clackedicelcp\Game.class
