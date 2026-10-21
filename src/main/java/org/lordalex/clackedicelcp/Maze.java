@@ -178,6 +178,7 @@ public class Maze {
                 p.sendMessage(ColorUtil.get(cfg.getFinishMessage()));
             }
             plugin.getGame().onMazeFinished(p, this, elapsed, levelTotal);
+            plugin.getScoreboardManager().updateBoard(p);
         }
 
         // В сюжетном моде ЛЁД НЕ РЕСЕТИТСЯ, поэтому мы просто чистим список активных

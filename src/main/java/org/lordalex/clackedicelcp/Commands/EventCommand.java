@@ -1,5 +1,6 @@
 package org.lordalex.clackedicelcp.Commands;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -19,25 +20,46 @@ public class EventCommand implements CommandExecutor {
         }
 
         if (args[0].equalsIgnoreCase("start")) {
-            plugin.getGame().setEventRunning(true);
             plugin.getPlatformManager().startAll();
-            plugin.getSnowmanManager().spawnAll(); // Спавним
+            plugin.getSnowmanManager().spawnAll();
+
+            plugin.getGame().setEventRunning(true); // Ставим флаг
+
+            // ДОБАВИТЬ ЭТО: Обновляем табло всем игрокам
+            for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
+                plugin.getScoreboardManager().updateBoard(p);
+            }
+
             sender.sendMessage(ColorUtil.get("&a&l✔ &aИвент запущен."));
             return true;
         }
 
         if (args[0].equalsIgnoreCase("stop")) {
-            plugin.getGame().setEventRunning(false);
             plugin.getPlatformManager().stopAll();
-            plugin.getSnowmanManager().removeAll(); // Убираем
+            plugin.getSnowmanManager().removeAll();
+
+            plugin.getGame().setEventRunning(false); // Снимаем флаг
+
+            // ДОБАВИТЬ ЭТО: Обновляем табло всем игрокам
+            for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
+                plugin.getScoreboardManager().updateBoard(p);
+            }
+
             sender.sendMessage(ColorUtil.get("&c&l✖ &cИвент остановлен."));
             return true;
         }
 
         if (args[0].equalsIgnoreCase("reset")) {
-            plugin.getGame().setEventRunning(false);
             plugin.getPlatformManager().resetAll();
-            plugin.getSnowmanManager().removeAll(); // При ресете тоже убираем
+            plugin.getSnowmanManager().removeAll();
+
+            plugin.getGame().setEventRunning(false); // Снимаем флаг
+
+            // ДОБАВИТЬ ЭТО: Обновляем табло всем игрокам
+            for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
+                plugin.getScoreboardManager().updateBoard(p);
+            }
+
             sender.sendMessage(ColorUtil.get("&a&l✔ &aИвент сброшен."));
             return true;
         }
