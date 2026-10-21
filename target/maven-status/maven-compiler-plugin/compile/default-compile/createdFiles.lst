@@ -29,6 +29,5 @@ org\lordalex\clackedicelcp\ClackedIceLCP.class
 org\lordalex\clackedicelcp\GameMode.class
 org\lordalex\clackedicelcp\Platforms\BlinkingPlatform$1.class
 org\lordalex\clackedicelcp\PlayerStats.class
-org\lordalex\clackedicelcp\Scoreboard\ScoreboardManager$1.class
 org\lordalex\clackedicelcp\PlayerInfo.class
 org\lordalex\clackedicelcp\Utils\ConfigSnowman.class

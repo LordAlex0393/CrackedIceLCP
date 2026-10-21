@@ -19,6 +19,7 @@ public class EventCommand implements CommandExecutor {
         }
 
         if (args[0].equalsIgnoreCase("start")) {
+            plugin.getGame().setEventRunning(true);
             plugin.getPlatformManager().startAll();
             plugin.getSnowmanManager().spawnAll(); // Спавним
             sender.sendMessage(ColorUtil.get("&a&l✔ &aИвент запущен."));
@@ -26,6 +27,7 @@ public class EventCommand implements CommandExecutor {
         }
 
         if (args[0].equalsIgnoreCase("stop")) {
+            plugin.getGame().setEventRunning(false);
             plugin.getPlatformManager().stopAll();
             plugin.getSnowmanManager().removeAll(); // Убираем
             sender.sendMessage(ColorUtil.get("&c&l✖ &cИвент остановлен."));
@@ -33,6 +35,7 @@ public class EventCommand implements CommandExecutor {
         }
 
         if (args[0].equalsIgnoreCase("reset")) {
+            plugin.getGame().setEventRunning(false);
             plugin.getPlatformManager().resetAll();
             plugin.getSnowmanManager().removeAll(); // При ресете тоже убираем
             sender.sendMessage(ColorUtil.get("&a&l✔ &aИвент сброшен."));

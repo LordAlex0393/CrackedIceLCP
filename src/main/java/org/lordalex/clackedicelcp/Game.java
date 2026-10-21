@@ -16,6 +16,10 @@ public class Game {
     private GameMode gameMode = GameMode.DEFAULT;
 
     private final Map<UUID, PlayerStats> statsMap = new HashMap<>();
+    private boolean eventRunning = false;
+
+    public boolean isEventRunning() { return eventRunning; }
+    public void setEventRunning(boolean eventRunning) { this.eventRunning = eventRunning; }
 
     public PlayerStats getStats(UUID uuid) {
         return statsMap.computeIfAbsent(uuid, k -> new PlayerStats());
@@ -143,5 +147,17 @@ public class Game {
             return x == k.x && y == k.y && z == k.z;
         }
         @Override public int hashCode() { return (x * 31 + y) * 31 + z; }
+    }
+
+    public List<String> getActiveQuests(UUID uuid) {
+        // В будущем здесь будет чтение из PlayerProgress (какие квесты активны)
+        // А пока возвращаем тестовый список
+        return Arrays.asList(
+                "Убить босса Зомби Мороза",
+                "Собрать 10 подарков",
+                "Открыть 5 сундуков",
+                "Победить 10 врагов",
+                "Найти секретную комнату"
+        );
     }
 }
