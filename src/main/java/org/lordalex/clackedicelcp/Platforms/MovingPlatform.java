@@ -3,8 +3,6 @@ package org.lordalex.clackedicelcp.Platforms;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.lordalex.clackedicelcp.ClackedIceLCP;
@@ -25,7 +23,6 @@ public class MovingPlatform implements Platform {
     private BukkitRunnable task;
     private boolean isRunning = false;
 
-    // Стейт движения
     private int currentStep = 0;
     private int maxSteps = 0;
     private Vector dirVector;
@@ -58,7 +55,7 @@ public class MovingPlatform implements Platform {
             }
         }
 
-        // Вычисляем вектор движения
+        // Вычисляем вектор движения (с диагоналями)
         double dx = moveTo.getX() - pos1.getX();
         double dy = moveTo.getY() - pos1.getY();
         double dz = moveTo.getZ() - pos1.getZ();
@@ -91,8 +88,7 @@ public class MovingPlatform implements Platform {
                     world.getBlockAt(loc).setType(Material.PACKED_ICE);
                 }
 
-                // 4. Таскаем игроков, стоящих на платформе
-                pushEntities(stepVec);
+                // 4. Игроков больше не таскаем! (удален pushEntities)
 
                 // 5. Меняем направление, если достигли края
                 if (currentStep >= maxSteps) forward = false;
@@ -100,17 +96,6 @@ public class MovingPlatform implements Platform {
             }
         };
         task.runTaskTimer(plugin, 0L, speedTicks);
-    }
-
-    private void pushEntities(Vector stepVec) {
-        for (Location loc : originalBlocks) {
-            // Ищем игроков чуть выше блока
-            for (Entity e : world.getNearbyEntities(loc.clone().add(0.5, 1, 0.5), 0.6, 1, 0.6)) {
-                if (e instanceof org.bukkit.entity.Player) {
-                    e.teleport(e.getLocation().add(stepVec));
-                }
-            }
-        }
     }
 
     @Override
@@ -122,20 +107,22 @@ public class MovingPlatform implements Platform {
     @Override
     public void reset() {
         stop();
-        // Очищаем всё, что двинули, и ставим на изначальные координаты
-        // Для простоты очищаем большую область (можно оптимизировать)
+
+        // 1. Очищаем текущее положение платформы
         for (Location loc : originalBlocks) {
-            loc.getBlock().setType(Material.AIR);
+            world.getBlockAt(loc).setType(Material.AIR);
         }
 
-        // Восстанавливаем исходные позиции
-        Location shift = pos1.clone();
+        // 2. Возвращаем блоки на исходные координаты
+        Vector totalShift = dirVector.clone().multiply(currentStep);
         for (Location loc : originalBlocks) {
-            // Вычисляем смещение от moveTo обратно к pos1 (просто возвращаем на pos1)
-            // Для простоты пересоздадим блоки заново
+            loc.subtract(totalShift);
+            world.getBlockAt(loc).setType(Material.PACKED_ICE);
         }
-        // Пересоздание лучше делать через initBlocks заново, но чтобы не плодить
-        // просто ставим блоки по изначальным координатам
-        // (опустим этот момент, если надо - допишем жесткий ресет)
+
+        // 3. Сбрасываем стейт
+        currentStep = 0;
+        forward = true;
+        isRunning = false;
     }
 }

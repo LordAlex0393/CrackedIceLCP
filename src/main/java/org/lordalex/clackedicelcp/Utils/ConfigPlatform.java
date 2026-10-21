@@ -13,6 +13,7 @@ public class ConfigPlatform {
     @JsonProperty("speed_ticks") private int speedTicks = 10;
     @JsonProperty("time_on") private int timeOn = 100;
     @JsonProperty("time_off") private int timeOff = 100;
+    @JsonProperty("start_delay") private int startDelay = 0;
 
     public String getType() { return type; }
     public String getWorld() { return world; }
@@ -22,4 +23,5 @@ public class ConfigPlatform {
     public int getSpeedTicks() { return speedTicks; }
     public int getTimeOn() { return timeOn; }
     public int getTimeOff() { return timeOff; }
+    public int getStartDelay() { return startDelay; }
 }

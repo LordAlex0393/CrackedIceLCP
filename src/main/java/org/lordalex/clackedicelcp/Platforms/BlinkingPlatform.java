@@ -16,17 +16,18 @@ public class BlinkingPlatform implements Platform {
     private final World world;
     private final int timeOn;
     private final int timeOff;
-
+    private final int startDelay;
     private final List<Location> blocks = new ArrayList<>();
+
     private BukkitRunnable task;
     private boolean isRunning = false;
-    private boolean currentlyOn = true;
 
     public BlinkingPlatform(ClackedIceLCP plugin, World world, ConfigPlatform cfg) {
         this.plugin = plugin;
         this.world = world;
         this.timeOn = cfg.getTimeOn();
         this.timeOff = cfg.getTimeOff();
+        this.startDelay = cfg.getStartDelay();
 
         Location pos1 = YmlParser.parseLocation(world, cfg.getPos1());
         Location pos2 = YmlParser.parseLocation(world, cfg.getPos2());
@@ -42,7 +43,8 @@ public class BlinkingPlatform implements Platform {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
                     blocks.add(new Location(world, x, y, z));
-                    world.getBlockAt(x, y, z).setType(Material.PACKED_ICE);
+                    // ВАЖНО: При загрузке ставим воздух, чтобы платформа не мешала до старта
+                    world.getBlockAt(x, y, z).setType(Material.AIR);
                 }
             }
         }
@@ -53,29 +55,39 @@ public class BlinkingPlatform implements Platform {
         if (isRunning) return;
         isRunning = true;
 
-        // Инициализируем стартовое состояние (включено)
-        setBlocks(Material.PACKED_ICE);
-        currentlyOn = true;
+        // Ждем start_delay, затем появляемся
+        task = new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!isRunning) return;
+                // Появляемся
+                setBlocks(true);
+                // Запускаем цикл: стоим time_on, пропадаем time_off
+                scheduleNext(true);
+            }
+        };
+        task.runTaskLater(plugin, startDelay);
+    }
+
+    private void scheduleNext(boolean isCurrentlyOn) {
+        if (!isRunning) return;
+
+        // Если сейчас стоим — ждем timeOn перед исчезновением. Иначе ждем timeOff перед появлением.
+        long delay = isCurrentlyOn ? timeOn : timeOff;
 
         task = new BukkitRunnable() {
             @Override
             public void run() {
-                if (currentlyOn) {
-                    setBlocks(Material.AIR);
-                    currentlyOn = false;
-                } else {
-                    setBlocks(Material.PACKED_ICE);
-                    currentlyOn = true;
-                }
+                if (!isRunning) return;
+                setBlocks(!isCurrentlyOn); // Инвертируем состояние
+                scheduleNext(!isCurrentlyOn);
             }
         };
-        // Первый запуск через timeOn тиков, потом чередуем
-        task.runTaskTimer(plugin, timeOn, timeOn == timeOff ? timeOn : timeOn + timeOff);
-        // *Примечание: BukkitRunnable не поддерживает разную задержку для разных итераций.
-        // Для правильного чередования лучше использовать два отдельных runTaskLater.
+        task.runTaskLater(plugin, delay);
     }
 
-    private void setBlocks(Material mat) {
+    private void setBlocks(boolean on) {
+        Material mat = on ? Material.PACKED_ICE : Material.AIR;
         for (Location loc : blocks) loc.getBlock().setType(mat);
     }
 
@@ -88,6 +100,6 @@ public class BlinkingPlatform implements Platform {
     @Override
     public void reset() {
         stop();
-        setBlocks(Material.PACKED_ICE);
+        setBlocks(false); // Сбрасываем в воздух (до следующего старта)
     }
 }
