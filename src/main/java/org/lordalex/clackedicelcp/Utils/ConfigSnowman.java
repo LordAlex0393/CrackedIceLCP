@@ -9,9 +9,11 @@ public class ConfigSnowman {
     @JsonProperty("location") private String location;
     @JsonProperty("fire_rate_ticks") private int fireRateTicks = 40;
     @JsonProperty("range") private int range = 15;
+    @JsonProperty("health") private double health = 4.0; // По умолчанию 4 (2 сердца)
 
     public String getWorld() { return world; }
     public String getLocation() { return location; }
     public int getFireRateTicks() { return fireRateTicks; }
     public int getRange() { return range; }
+    public double getHealth() { return health; }
 }

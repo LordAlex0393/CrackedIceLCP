@@ -4,6 +4,7 @@ org\lordalex\clackedicelcp\Utils\ConfigMaze.class
 org\lordalex\clackedicelcp\Events\MoveListener.class
 org\lordalex\clackedicelcp\Maze.class
 org\lordalex\clackedicelcp\Game$BlockKey.class
+org\lordalex\clackedicelcp\Snowmen\SnowmanListener.class
 org\lordalex\clackedicelcp\Platforms\MovingPlatform$1.class
 org\lordalex\clackedicelcp\Platforms\BlinkingPlatform$2.class
 org\lordalex\clackedicelcp\Snowmen\SnowmanTrap$1.class

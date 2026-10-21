@@ -7,6 +7,8 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Snowman;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.lordalex.clackedicelcp.ClackedIceLCP;
@@ -18,6 +20,7 @@ public class SnowmanTrap {
     private final Location location;
     private final int fireRateTicks;
     private final int range;
+    private final double health;
     private Snowman snowman;
     private BukkitRunnable task;
 
@@ -26,19 +29,22 @@ public class SnowmanTrap {
         this.location = YmlParser.parseLocation(world, cfg.getLocation());
         this.fireRateTicks = Math.max(5, cfg.getFireRateTicks());
         this.range = cfg.getRange();
+        this.health = cfg.getHealth();
     }
 
     public void spawn() {
-        // Защита от двойного спавна
-        if (snowman != null && snowman.isValid()) {
-            return;
-        }
+        if (snowman != null && snowman.isValid()) return;
 
         snowman = (Snowman) location.getWorld().spawnEntity(location, EntityType.SNOWMAN);
 
-        // Делаем его неуязвимым
-        snowman.getEquipment().setHelmet(new ItemStack(Material.AIR));
-        snowman.setFireTicks(0);
+        snowman.setMaxHealth(health);
+        snowman.setHealth(health);
+
+        // Очищаем ВСЮ экипировку (тыкву и снежки в руке)
+        snowman.getEquipment().clear();
+
+        // Замедление навсегда
+        snowman.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, Integer.MAX_VALUE, 255, false, false));
 
         startShooting();
     }
@@ -48,10 +54,6 @@ public class SnowmanTrap {
             @Override
             public void run() {
                 if (snowman == null || !snowman.isValid()) return;
-
-                // Держим на месте
-                snowman.setVelocity(new Vector(0, 0, 0));
-                snowman.setFireTicks(0); // Страховка от таяния
 
                 Player target = null;
                 double closest = Double.MAX_VALUE;
@@ -68,8 +70,10 @@ public class SnowmanTrap {
                 }
 
                 if (target != null) {
+                    // Поворачиваем через телепортацию (в 1.8.8 это единственный способ)
                     Location loc = snowman.getLocation();
-                    loc.setDirection(target.getLocation().subtract(loc).toVector());
+                    Vector direction = target.getLocation().toVector().subtract(loc.toVector());
+                    loc.setDirection(direction);
                     snowman.teleport(loc);
 
                     org.bukkit.entity.Snowball snowball = snowman.launchProjectile(org.bukkit.entity.Snowball.class);

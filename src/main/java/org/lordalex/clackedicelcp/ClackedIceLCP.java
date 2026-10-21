@@ -9,6 +9,7 @@ import org.lordalex.clackedicelcp.Commands.IceCommand;
 import org.lordalex.clackedicelcp.Events.MoveListener;
 import org.lordalex.clackedicelcp.Events.QuitListener;
 import org.lordalex.clackedicelcp.Platforms.PlatformManager;
+import org.lordalex.clackedicelcp.Snowmen.SnowmanListener;
 import org.lordalex.clackedicelcp.Snowmen.SnowmanManager;
 import org.lordalex.clackedicelcp.Utils.Config;
 import org.lordalex.clackedicelcp.Utils.YmlParser;
@@ -24,6 +25,7 @@ public final class ClackedIceLCP extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
+        Bukkit.getPluginManager().registerEvents(new SnowmanListener(), this);
 
         try {
             File file = new File(getDataFolder(), "config.yml");
