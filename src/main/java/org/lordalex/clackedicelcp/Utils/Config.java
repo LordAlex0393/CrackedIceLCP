@@ -8,9 +8,13 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Config {
 
+    @JsonProperty("show_time")
+    private boolean showTime = false;
+
     @JsonProperty("mazes")
     private Map<String, ConfigMaze> mazes;
 
+    public boolean isShowTime() { return showTime; }
     public Map<String, ConfigMaze> getMazes() { return mazes; }
     public void setMazes(Map<String, ConfigMaze> mazes) { this.mazes = mazes; }
 }

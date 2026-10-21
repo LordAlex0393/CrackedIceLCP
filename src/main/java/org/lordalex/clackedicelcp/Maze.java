@@ -101,8 +101,15 @@ public class Maze {
 
         activePlayers.computeIfAbsent(p.getUniqueId(), k -> new PlayerInfo(p));
 
+        PlayerProgress prog = plugin.getGame().getProgress(p.getUniqueId());
+
+        // старт цепочки — на первом блоке первого уровня
+        if (plugin.getGame().isFirstMazeInChain(this)) {
+            prog.startChainIfNeeded(System.currentTimeMillis());
+        }
+
         if (!timerRunning) {
-            startTimer();
+            startTimer(p, prog);
         }
 
         Game.BlockKey key = new Game.BlockKey(under.getX(), under.getY(), under.getZ());
@@ -128,7 +135,7 @@ public class Maze {
 
     // ===================== ТАЙМЕР =====================
 
-    private void startTimer() {
+    private void startTimer(Player p, PlayerProgress prog) {
         if (state == GameState.RESETTING) return;
         if (timerRunning) return;
 
@@ -136,8 +143,10 @@ public class Maze {
         this.timerRunning = true;
         this.state = GameState.RUNNING;
 
-        for (PlayerInfo pi : activePlayers.values()) {
-            pi.getPlayer().sendMessage(ColorUtil.get("&eУровень " + id + " начался!"));
+        prog.startAttempt(id, startTime);
+
+        if (plugin.getGame().isShowTime()) {
+            p.sendMessage(ColorUtil.get("&eУровень " + id + " начался!"));
         }
     }
 
@@ -154,12 +163,13 @@ public class Maze {
         stopTimer();
         state = GameState.RESETTING;
 
+        PlayerProgress prog = plugin.getGame().getProgress(culprit.getUniqueId());
         culprit.sendMessage(ColorUtil.get(cfg.getFailMessage()));
 
-        // сбрасываем прогресс игрока
-        plugin.getGame().onMazeFailed(culprit);
+        // очищаем только попытку, прогресс цепочки сохраняется
+        prog.resetAttemptOnly(id);
 
-        long ignoreTime = System.currentTimeMillis() + 100;
+        long ignoreTime = System.currentTimeMillis() + 1000;
         int mazeY = (int) startLocation.getY();
 
         for (PlayerInfo pi : new ArrayList<>(activePlayers.values())) {
@@ -171,9 +181,7 @@ public class Maze {
             p.teleport(startLocation);
             plugin.getGame().setIgnore(p.getUniqueId(), ignoreTime);
 
-            // остальным, кто не виноват, тоже сбрасываем прогресс
             if (!p.getUniqueId().equals(culprit.getUniqueId())) {
-                plugin.getGame().onMazeFailed(p);
                 p.sendMessage(ColorUtil.get("&cИгрок &e" + culprit.getName()
                         + " &cсломал уровень " + id + ". Рестарт."));
             }
@@ -185,27 +193,33 @@ public class Maze {
     }
 
     private void finishAll() {
+        long now = System.currentTimeMillis();
         long elapsed = stopTimer();
         state = GameState.WAITING;
 
-        // сообщение о времени за конкретный уровень
-        String time = String.format("%.2f", elapsed / 1000.0);
-        String msg = cfg.getFinishMessage().replace("%time%", time);
+        String timeStr = String.format("%.2f", elapsed / 1000.0);
 
         for (PlayerInfo pi : new ArrayList<>(activePlayers.values())) {
             Player p = pi.getPlayer();
             if (p == null || !p.isOnline()) continue;
 
-            p.sendMessage(ColorUtil.get(msg));
+            PlayerProgress prog = plugin.getGame().getProgress(p.getUniqueId());
+            long realElapsed = now - prog.getChainStart();
 
-            // уведомляем Game — тот решит, показать ли суммарную статистику
-            plugin.getGame().onMazeFinished(p, this, elapsed);
+            // сообщение о финише — если флаг включён, добавляем время
+            if (plugin.getGame().isShowTime()) {
+                p.sendMessage(ColorUtil.get(cfg.getFinishMessage() + " &7(&e" + timeStr + "&7 сек.)"));
+            } else {
+                p.sendMessage(ColorUtil.get(cfg.getFinishMessage()));
+            }
+
+            plugin.getGame().onMazeFinished(p, this, elapsed, realElapsed);
         }
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             reset();
             activePlayers.clear();
-        }, 8L);
+        }, 60L);
     }
 
     // ===================== СБРОС =====================

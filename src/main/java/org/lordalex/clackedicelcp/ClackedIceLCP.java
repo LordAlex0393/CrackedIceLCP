@@ -32,7 +32,7 @@ public final class ClackedIceLCP extends JavaPlugin {
             }
 
             this.game = new Game(this);
-            game.loadAll(config.getMazes());
+            game.loadAll(config.getMazes(), config.isShowTime());
 
             Bukkit.getPluginManager().registerEvents(new MoveListener(this), this);
             Bukkit.getPluginManager().registerEvents(new QuitListener(this), this);

@@ -1,6 +1,5 @@
 package org.lordalex.clackedicelcp;
 
-import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.lordalex.clackedicelcp.Utils.ConfigMaze;
@@ -11,33 +10,35 @@ public class Game {
 
     private final ClackedIceLCP plugin;
     private final Map<String, Maze> mazes = new LinkedHashMap<>();
+    private final List<String> orderedMazeIds = new ArrayList<>();
     private final Map<UUID, Long> ignoreUntil = new HashMap<>();
     private final Map<UUID, PlayerProgress> progressMap = new HashMap<>();
-    private final List<String> orderedMazeIds = new ArrayList<>();  // порядок уровней
+    private boolean showTime = false;
 
     public Game(ClackedIceLCP plugin) {
         this.plugin = plugin;
     }
 
-    public void loadAll(Map<String, ConfigMaze> configs) {
+    public void loadAll(Map<String, ConfigMaze> configs, boolean showTime) {
+        this.showTime = showTime;
         mazes.clear();
         orderedMazeIds.clear();
 
         for (Map.Entry<String, ConfigMaze> e : configs.entrySet()) {
             Maze m = new Maze(plugin, e.getKey(), e.getValue());
             mazes.put(e.getKey(), m);
-            orderedMazeIds.add(e.getKey());   // порядок = порядок в YAML
+            orderedMazeIds.add(e.getKey());
         }
-        plugin.getLogger().info("Loaded mazes: " + mazes.size() + " | order: " + orderedMazeIds);
+        plugin.getLogger().info("Loaded mazes: " + mazes.size() + " | showTime: " + showTime);
     }
 
-    public PlayerProgress getProgress(UUID uuid) {
-        return progressMap.computeIfAbsent(uuid, k -> new PlayerProgress());
-    }
+    // ===================== ГЕТТЕРЫ =====================
 
-    public List<String> getOrderedMazeIds() {
-        return orderedMazeIds;
-    }
+    public boolean isShowTime() { return showTime; }
+
+    public Collection<Maze> getMazes() { return mazes.values(); }
+
+    public Maze getMazeById(String id) { return mazes.get(id); }
 
     public Maze getMazeByBlock(Block b) {
         for (Maze m : mazes.values()) {
@@ -46,12 +47,15 @@ public class Game {
         return null;
     }
 
-    public Maze getMazeById(String id) {
-        return mazes.get(id);
+    public List<String> getOrderedMazeIds() { return orderedMazeIds; }
+
+    public boolean isFirstMazeInChain(Maze maze) {
+        if (orderedMazeIds.isEmpty()) return false;
+        return orderedMazeIds.get(0).equals(maze.getId());
     }
 
-    public Collection<Maze> getMazes() {
-        return mazes.values();
+    public PlayerProgress getProgress(UUID uuid) {
+        return progressMap.computeIfAbsent(uuid, k -> new PlayerProgress());
     }
 
     // ===================== IGNORE =====================
@@ -70,15 +74,11 @@ public class Game {
         return true;
     }
 
-    // ===================== RESET ALL =====================
+    // ===================== РЕСЕТ ВСЕХ =====================
 
     public void resetAll() {
-        for (Maze m : mazes.values()) {
-            m.reset();
-        }
+        for (Maze m : mazes.values()) m.reset();
     }
-
-    // ===================== КЛЮЧ БЛОКА =====================
 
     public static class BlockKey {
         public final int x, y, z;
@@ -91,18 +91,15 @@ public class Game {
         @Override public int hashCode() { return (x * 31 + y) * 31 + z; }
     }
 
-    /**
-     * Вызывается, когда игрок успешно прошёл лабиринт.
-     * Возвращает true, если это был "правильный" следующий уровень в цепочке.
-     */
-    public boolean onMazeFinished(Player p, Maze maze, long elapsed) {
+    // ===================== ФИНИШ ЛАБИРИНТА =====================
+
+    public boolean onMazeFinished(Player p, Maze maze, long elapsed, long realElapsed) {
         UUID uuid = p.getUniqueId();
         PlayerProgress prog = getProgress(uuid);
 
         List<String> order = orderedMazeIds;
         int expectedIndex = prog.getNextIndex();
 
-        // если уровней меньше, чем ожидается — сбрасываем
         if (expectedIndex >= order.size()) {
             prog.reset();
             expectedIndex = 0;
@@ -111,9 +108,9 @@ public class Game {
         String expectedId = order.get(expectedIndex);
 
         if (!maze.getId().equals(expectedId)) {
-            // прошёл не тот уровень — сбрасываем прогресс, начинаем заново с этого
             prog.reset();
             prog.addTime(maze.getId(), elapsed);
+            prog.addRealTime(maze.getId(), realElapsed);
             prog.setNextIndex(indexOf(maze.getId()) + 1);
 
             p.sendMessage(org.lordalex.clackedicelcp.Utils.ColorUtil.get(
@@ -121,11 +118,10 @@ public class Game {
             return false;
         }
 
-        // правильный уровень
         prog.addTime(maze.getId(), elapsed);
+        prog.addRealTime(maze.getId(), realElapsed);
         prog.setNextIndex(expectedIndex + 1);
 
-        // если прошёл ВСЕ уровни по порядку — выводим суммарную статистику
         if (prog.getNextIndex() >= order.size()) {
             printSummary(p, prog);
             prog.reset();
@@ -135,9 +131,6 @@ public class Game {
         return true;
     }
 
-    /**
-     * Игрок ошибся в лабиринте — сбрасываем его прогресс по цепочке.
-     */
     public void onMazeFailed(Player p) {
         PlayerProgress prog = getProgress(p.getUniqueId());
         prog.reset();
@@ -153,14 +146,28 @@ public class Game {
     private void printSummary(Player p, PlayerProgress prog) {
         StringBuilder sb = new StringBuilder();
         sb.append("&6&l=== ИТОГ ===\n");
-        for (String id : orderedMazeIds) {
-            long t = prog.getTime(id);
-            sb.append("&e").append(id).append("&7: &f")
-                    .append(String.format("%.2f", t / 1000.0)).append(" сек.\n");
+
+        if (showTime) {
+            for (String id : orderedMazeIds) {
+                long t = prog.getTime(id);
+                long rt = prog.getRealTime(id);
+                sb.append("&e").append(id).append("&7: &f")
+                        .append(String.format("%.2f", t / 1000.0))
+                        .append(" сек. &7(&f")
+                        .append(String.format("%.2f", rt / 1000.0))
+                        .append("&7)\n");
+            }
+            sb.append("&6&lСУММА: &e")
+                    .append(String.format("%.2f", prog.getTotalTime() / 1000.0))
+                    .append(" сек. &7(&f")
+                    .append(String.format("%.2f", prog.getTotalRealTime() / 1000.0))
+                    .append("&7)");
+        } else {
+            for (String id : orderedMazeIds) {
+                sb.append("&a").append(id).append("&7: &aпройден\n");
+            }
+            sb.append("&6&lВсе уровни пройдены по порядку!");
         }
-        sb.append("&a&lСУММА: &e")
-                .append(String.format("%.2f", prog.getTotalTime() / 1000.0))
-                .append(" сек.");
 
         p.sendMessage(org.lordalex.clackedicelcp.Utils.ColorUtil.get(sb.toString()));
     }
