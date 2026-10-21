@@ -2,6 +2,7 @@ package org.lordalex.clackedicelcp;
 
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.lordalex.clackedicelcp.Utils.ColorUtil;
 import org.lordalex.clackedicelcp.Utils.ConfigMaze;
 import java.util.*;
 
@@ -50,21 +51,18 @@ public class Game {
         return true;
     }
 
-    // Вызывается командой /icemaze reset - ПОЛНЫЙ сброс с восстановлением стекла
+    // Полный сброс (восстанавливает лёд, стекло и красные блоки)
     public void resetAll() {
         for (Maze m : mazes.values()) {
-            m.reset();
-            m.restoreBarriers();
+            m.hardReset(); // <--- Теперь используем hardReset
         }
         progressMap.clear();
     }
 
-    // Вызывается командой /icemaze reset <id>
     public void resetMaze(String id) {
         Maze m = mazes.get(id);
         if (m != null) {
-            m.reset();
-            m.restoreBarriers();
+            m.hardReset();
             progressMap.clear();
         }
     }
@@ -76,7 +74,7 @@ public class Game {
 
         if (gameMode == GameMode.SINGLE) {
             maze.teleportToStart(p);
-            maze.reset(); // Сбрасываем лёд, чтобы можно было пройти заново
+            maze.softReset(); // Сбрасываем только лёд для повторного прохождения
             return true;
         }
 
@@ -86,7 +84,7 @@ public class Game {
 
         if (gameMode == GameMode.DEFAULT && !maze.getId().equals(expectedId)) {
             prog.reset();
-            p.sendMessage(org.lordalex.clackedicelcp.Utils.ColorUtil.get("&7Порядок нарушен. Начни с level1"));
+            p.sendMessage(ColorUtil.get("&7Порядок нарушен. Начни с level1"));
             return false;
         }
 
@@ -94,7 +92,10 @@ public class Game {
         prog.addLevelTotalTime(maze.getId(), levelTotal);
         prog.setNextIndex(expectedIndex + 1);
 
-        if (gameMode == GameMode.DEFAULT) maze.breakBarriers();
+        // Стекло ломается и в сюжете, и в тренировке
+        if (gameMode == GameMode.DEFAULT || gameMode == GameMode.TRAINING) {
+            maze.breakBarriers();
+        }
 
         if (prog.getNextIndex() >= order.size()) {
             printSummary(p, prog);
@@ -119,7 +120,7 @@ public class Game {
         long totalRealTime = System.currentTimeMillis() - prog.getChainStart();
         sb.append("&6&lСУММА: &e").append(String.format("%.2f", prog.getTotalTime() / 1000.0))
                 .append(" сек. &7(&f").append(String.format("%.2f", totalRealTime / 1000.0)).append("&7)");
-        p.sendMessage(org.lordalex.clackedicelcp.Utils.ColorUtil.get(sb.toString()));
+        p.sendMessage(ColorUtil.get(sb.toString()));
     }
 
     public static class BlockKey {

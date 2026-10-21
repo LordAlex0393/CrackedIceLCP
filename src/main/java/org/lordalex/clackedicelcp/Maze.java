@@ -89,6 +89,12 @@ public class Maze {
         if (state == GameState.RESETTING) return;
         if (plugin.getGame().isIgnored(p.getUniqueId())) return;
 
+        // В сюжетном моде, если лабиринт уже пройден, мы не запускаем его снова
+        if (plugin.getGame().getGameMode() == GameMode.DEFAULT && state == GameState.WAITING) {
+            // Но нам нужно понять, пройден ли он уже этим игроком
+            if (plugin.getGame().getProgress(p.getUniqueId()).getTime(id) > 0) return;
+        }
+
         activePlayers.computeIfAbsent(p.getUniqueId(), k -> new PlayerInfo(p));
         PlayerProgress prog = plugin.getGame().getProgress(p.getUniqueId());
 
@@ -149,7 +155,7 @@ public class Maze {
             }
         }
 
-        reset();
+        softReset(); // При фейле сбрасываем лёд
         activePlayers.clear();
         state = GameState.WAITING;
     }
@@ -174,14 +180,20 @@ public class Maze {
             plugin.getGame().onMazeFinished(p, this, elapsed, levelTotal);
         }
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            reset();
+        // В сюжетном моде ЛЁД НЕ РЕСЕТИТСЯ, поэтому мы просто чистим список активных
+        if (plugin.getGame().getGameMode() == GameMode.DEFAULT) {
             activePlayers.clear();
-        }, 8L);
+        } else {
+            // В остальных режимах лёд сбрасывается через 8 тиков
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                softReset();
+                activePlayers.clear();
+            }, 8L);
+        }
     }
 
-    // ВАЖНО: Тут мы НЕ трогаем стекло, оно восстанавливается только в Game.resetAll()
-    public void reset() {
+    // Сбрасывает ТОЛЬКО лёд (при фейле или повторном прохождении)
+    public void softReset() {
         if (world == null) return;
         for (Game.BlockKey key : mazeBlocks) {
             world.getBlockAt(key.x, key.y, key.z).setType(Material.PACKED_ICE);
@@ -191,14 +203,26 @@ public class Maze {
         state = GameState.WAITING;
     }
 
-    public void restoreBarriers() {
-        for (Location loc : glassLocations) loc.getBlock().setType(Material.GLASS);
-        for (Location loc : redstoneLocations) loc.getBlock().setType(Material.REDSTONE_BLOCK);
+    // Сбрасывает ВСЁ (лёд, стекло, красные блоки) - только по команде
+    public void hardReset() {
+        softReset();
+
+        for (Location loc : glassLocations){
+            loc.getBlock().setType(Material.STAINED_GLASS);
+            loc.getBlock().setData((byte) 14);
+        }
+        for (Location loc : redstoneLocations){
+            loc.getBlock().setType(Material.STAINED_CLAY); // Ярко-красный
+            loc.getBlock().setData((byte) 14);
+        }
     }
 
     public void breakBarriers() {
         for (Location loc : glassLocations) loc.getBlock().setType(Material.AIR);
-        for (Location loc : redstoneLocations) loc.getBlock().setType(Material.EMERALD_BLOCK); // Изумрудный (зеленый)
+        for (Location loc : redstoneLocations){
+            loc.getBlock().setType(Material.STAINED_CLAY); // Ярко-зеленый
+            loc.getBlock().setData((byte) 13);
+        }
     }
 
     public void teleportToStart(Player p) {
