@@ -7,16 +7,16 @@ public class PlayerProgress {
 
     private int nextIndex = 0;
 
-    // чистое время — только удачные попытки
+    // чистое время удачной попытки на уровень
     private final Map<String, Long> times = new HashMap<>();
 
-    // реальное время — от первого блока level1 до последнего блока текущего уровня
-    private final Map<String, Long> realTimes = new HashMap<>();
+    // общее время, потраченное на уровень (с фейлами)
+    private final Map<String, Long> levelTotalTimes = new HashMap<>();
 
     // момент старта цепочки (нажатие первого блока level1)
     private Long chainStart = null;
 
-    // момент старта попытки на конкретный уровень
+    // момент первого шага на текущий уровень
     private final Map<String, Long> attemptStart = new HashMap<>();
 
     public int getNextIndex() { return nextIndex; }
@@ -28,22 +28,19 @@ public class PlayerProgress {
         if (chainStart == null) chainStart = now;
     }
 
-    public boolean isChainStarted() { return chainStart != null; }
     public long getChainStart() { return chainStart == null ? 0 : chainStart; }
 
     // ===================== ПОПЫТКА =====================
 
-    public void startAttempt(String mazeId, long now) {
-        attemptStart.put(mazeId, now);
+    public void startAttemptIfNeeded(String mazeId, long now) {
+        if (!attemptStart.containsKey(mazeId)) {
+            attemptStart.put(mazeId, now);
+        }
     }
 
     public long getAttemptStart(String mazeId) {
         Long t = attemptStart.get(mazeId);
         return t == null ? 0 : t;
-    }
-
-    public boolean hasAttempt(String mazeId) {
-        return attemptStart.containsKey(mazeId);
     }
 
     // ===================== ЗАПИСЬ =====================
@@ -52,8 +49,8 @@ public class PlayerProgress {
         times.put(mazeId, millis);
     }
 
-    public void addRealTime(String mazeId, long millis) {
-        realTimes.put(mazeId, millis);
+    public void addLevelTotalTime(String mazeId, long millis) {
+        levelTotalTimes.put(mazeId, millis);
     }
 
     public long getTime(String mazeId) {
@@ -61,8 +58,8 @@ public class PlayerProgress {
         return t == null ? 0L : t;
     }
 
-    public long getRealTime(String mazeId) {
-        Long t = realTimes.get(mazeId);
+    public long getLevelTotalTime(String mazeId) {
+        Long t = levelTotalTimes.get(mazeId);
         return t == null ? 0L : t;
     }
 
@@ -72,26 +69,13 @@ public class PlayerProgress {
         return sum;
     }
 
-    public long getTotalRealTime() {
-        long sum = 0;
-        for (Long t : realTimes.values()) sum += t;
-        return sum;
-    }
-
     // ===================== СБРОС =====================
 
     public void reset() {
         nextIndex = 0;
         times.clear();
-        realTimes.clear();
+        levelTotalTimes.clear();
         attemptStart.clear();
         chainStart = null;
-    }
-
-    /**
-     * Сброс только попытки (фейл), статистика удачных уровней сохраняется.
-     */
-    public void resetAttemptOnly(String mazeId) {
-        attemptStart.remove(mazeId);
     }
 }

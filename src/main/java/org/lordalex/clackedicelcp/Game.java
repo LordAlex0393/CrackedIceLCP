@@ -32,13 +32,10 @@ public class Game {
         plugin.getLogger().info("Loaded mazes: " + mazes.size() + " | showTime: " + showTime);
     }
 
-    // ===================== ГЕТТЕРЫ =====================
-
     public boolean isShowTime() { return showTime; }
-
     public Collection<Maze> getMazes() { return mazes.values(); }
-
     public Maze getMazeById(String id) { return mazes.get(id); }
+    public List<String> getOrderedMazeIds() { return orderedMazeIds; }
 
     public Maze getMazeByBlock(Block b) {
         for (Maze m : mazes.values()) {
@@ -46,8 +43,6 @@ public class Game {
         }
         return null;
     }
-
-    public List<String> getOrderedMazeIds() { return orderedMazeIds; }
 
     public boolean isFirstMazeInChain(Maze maze) {
         if (orderedMazeIds.isEmpty()) return false;
@@ -57,8 +52,6 @@ public class Game {
     public PlayerProgress getProgress(UUID uuid) {
         return progressMap.computeIfAbsent(uuid, k -> new PlayerProgress());
     }
-
-    // ===================== IGNORE =====================
 
     public void setIgnore(UUID uuid, long until) {
         ignoreUntil.put(uuid, until);
@@ -74,26 +67,11 @@ public class Game {
         return true;
     }
 
-    // ===================== РЕСЕТ ВСЕХ =====================
-
     public void resetAll() {
         for (Maze m : mazes.values()) m.reset();
     }
 
-    public static class BlockKey {
-        public final int x, y, z;
-        public BlockKey(int x, int y, int z) { this.x = x; this.y = y; this.z = z; }
-        @Override public boolean equals(Object o) {
-            if (!(o instanceof BlockKey)) return false;
-            BlockKey k = (BlockKey) o;
-            return x == k.x && y == k.y && z == k.z;
-        }
-        @Override public int hashCode() { return (x * 31 + y) * 31 + z; }
-    }
-
-    // ===================== ФИНИШ ЛАБИРИНТА =====================
-
-    public boolean onMazeFinished(Player p, Maze maze, long elapsed, long realElapsed) {
+    public boolean onMazeFinished(Player p, Maze maze, long elapsed, long levelTotal) {
         UUID uuid = p.getUniqueId();
         PlayerProgress prog = getProgress(uuid);
 
@@ -110,7 +88,7 @@ public class Game {
         if (!maze.getId().equals(expectedId)) {
             prog.reset();
             prog.addTime(maze.getId(), elapsed);
-            prog.addRealTime(maze.getId(), realElapsed);
+            prog.addLevelTotalTime(maze.getId(), levelTotal);
             prog.setNextIndex(indexOf(maze.getId()) + 1);
 
             p.sendMessage(org.lordalex.clackedicelcp.Utils.ColorUtil.get(
@@ -119,7 +97,7 @@ public class Game {
         }
 
         prog.addTime(maze.getId(), elapsed);
-        prog.addRealTime(maze.getId(), realElapsed);
+        prog.addLevelTotalTime(maze.getId(), levelTotal);
         prog.setNextIndex(expectedIndex + 1);
 
         if (prog.getNextIndex() >= order.size()) {
@@ -131,11 +109,6 @@ public class Game {
         return true;
     }
 
-    public void onMazeFailed(Player p) {
-        PlayerProgress prog = getProgress(p.getUniqueId());
-        prog.reset();
-    }
-
     private int indexOf(String id) {
         for (int i = 0; i < orderedMazeIds.size(); i++) {
             if (orderedMazeIds.get(i).equals(id)) return i;
@@ -144,31 +117,46 @@ public class Game {
     }
 
     private void printSummary(Player p, PlayerProgress prog) {
+        // Если флаг выключен — вообще ничего не пишем
+        if (!showTime) {
+            return;
+        }
+
         StringBuilder sb = new StringBuilder();
         sb.append("&6&l=== ИТОГ ===\n");
 
-        if (showTime) {
-            for (String id : orderedMazeIds) {
-                long t = prog.getTime(id);
-                long rt = prog.getRealTime(id);
-                sb.append("&e").append(id).append("&7: &f")
-                        .append(String.format("%.2f", t / 1000.0))
-                        .append(" сек. &7(&f")
-                        .append(String.format("%.2f", rt / 1000.0))
-                        .append("&7)\n");
-            }
-            sb.append("&6&lСУММА: &e")
-                    .append(String.format("%.2f", prog.getTotalTime() / 1000.0))
+        for (String id : orderedMazeIds) {
+            long t = prog.getTime(id);
+            long lt = prog.getLevelTotalTime(id);
+            sb.append("&e").append(id).append("&7: &f")
+                    .append(String.format("%.2f", t / 1000.0))
                     .append(" сек. &7(&f")
-                    .append(String.format("%.2f", prog.getTotalRealTime() / 1000.0))
-                    .append("&7)");
-        } else {
-            for (String id : orderedMazeIds) {
-                sb.append("&a").append(id).append("&7: &aпройден\n");
-            }
-            sb.append("&6&lВсе уровни пройдены по порядку!");
+                    .append(String.format("%.2f", lt / 1000.0))
+                    .append("&7)\n");
         }
 
+        // Общее время от первого шага на первом уровне до последнего шага на последнем
+        long chainStart = prog.getChainStart();
+        long totalRealTime = System.currentTimeMillis() - chainStart;
+
+        sb.append("&6&lСУММА: &e")
+                .append(String.format("%.2f", prog.getTotalTime() / 1000.0))
+                .append(" сек. &7(&f")
+                .append(String.format("%.2f", totalRealTime / 1000.0))
+                .append("&7)");
+
         p.sendMessage(org.lordalex.clackedicelcp.Utils.ColorUtil.get(sb.toString()));
+    }
+
+
+    public static class BlockKey {
+        public final int x, y, z;
+        public BlockKey(int x, int y, int z) { this.x = x; this.y = y; this.z = z; }
+        @Override public boolean equals(Object o) {
+            if (!(o instanceof BlockKey)) return false;
+            BlockKey k = (BlockKey) o;
+            return x == k.x && y == k.y && z == k.z;
+        }
+        @Override public int hashCode() { return (x * 31 + y) * 31 + z; }
     }
 }

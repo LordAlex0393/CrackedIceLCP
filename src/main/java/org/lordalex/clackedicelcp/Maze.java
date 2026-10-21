@@ -15,7 +15,7 @@ import java.util.*;
 public class Maze {
 
     private final ClackedIceLCP plugin;
-    private final String id;              // "level1", "level2"...
+    private final String id;
     private final ConfigMaze cfg;
 
     private final Set<Game.BlockKey> mazeBlocks = new HashSet<>();
@@ -35,8 +35,6 @@ public class Maze {
         this.cfg = cfg;
         load();
     }
-
-    // ===================== ЗАГРУЗКА =====================
 
     public void load() {
         mazeBlocks.clear();
@@ -78,8 +76,6 @@ public class Maze {
         plugin.getLogger().info("[Maze " + id + "] Loaded: " + mazeBlocks.size() + " blocks");
     }
 
-    // ===================== ПРОВЕРКИ =====================
-
     public boolean isMazeBlock(Block b) {
         return mazeBlocks.contains(new Game.BlockKey(b.getX(), b.getY(), b.getZ()));
     }
@@ -87,13 +83,6 @@ public class Maze {
     public boolean isPressed(Block b) {
         return pressedBlocks.contains(new Game.BlockKey(b.getX(), b.getY(), b.getZ()));
     }
-
-    public boolean containsLocation(Location loc) {
-        if (world == null || loc.getWorld() != world) return false;
-        return mazeBlocks.contains(new Game.BlockKey(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
-    }
-
-    // ===================== ЛОГИКА ШАГА =====================
 
     public void onPlayerStep(Player p, Block under) {
         if (state == GameState.RESETTING) return;
@@ -103,10 +92,11 @@ public class Maze {
 
         PlayerProgress prog = plugin.getGame().getProgress(p.getUniqueId());
 
-        // старт цепочки — на первом блоке первого уровня
         if (plugin.getGame().isFirstMazeInChain(this)) {
             prog.startChainIfNeeded(System.currentTimeMillis());
         }
+
+        prog.startAttemptIfNeeded(id, System.currentTimeMillis());
 
         if (!timerRunning) {
             startTimer(p, prog);
@@ -133,8 +123,6 @@ public class Maze {
         failAll(other);
     }
 
-    // ===================== ТАЙМЕР =====================
-
     private void startTimer(Player p, PlayerProgress prog) {
         if (state == GameState.RESETTING) return;
         if (timerRunning) return;
@@ -142,8 +130,6 @@ public class Maze {
         this.startTime = System.currentTimeMillis();
         this.timerRunning = true;
         this.state = GameState.RUNNING;
-
-        prog.startAttempt(id, startTime);
 
         if (plugin.getGame().isShowTime()) {
             p.sendMessage(ColorUtil.get("&eУровень " + id + " начался!"));
@@ -157,19 +143,13 @@ public class Maze {
         return elapsed;
     }
 
-    // ===================== ФЕЙЛ / ФИНИШ =====================
-
     public void failAll(Player culprit) {
         stopTimer();
         state = GameState.RESETTING;
 
-        PlayerProgress prog = plugin.getGame().getProgress(culprit.getUniqueId());
         culprit.sendMessage(ColorUtil.get(cfg.getFailMessage()));
 
-        // очищаем только попытку, прогресс цепочки сохраняется
-        prog.resetAttemptOnly(id);
-
-        long ignoreTime = System.currentTimeMillis() + 1000;
+        long ignoreTime = System.currentTimeMillis() + 100;
         int mazeY = (int) startLocation.getY();
 
         for (PlayerInfo pi : new ArrayList<>(activePlayers.values())) {
@@ -197,36 +177,34 @@ public class Maze {
         long elapsed = stopTimer();
         state = GameState.WAITING;
 
-        String timeStr = String.format("%.2f", elapsed / 1000.0);
-
         for (PlayerInfo pi : new ArrayList<>(activePlayers.values())) {
             Player p = pi.getPlayer();
             if (p == null || !p.isOnline()) continue;
 
             PlayerProgress prog = plugin.getGame().getProgress(p.getUniqueId());
-            long realElapsed = now - prog.getChainStart();
 
-            // сообщение о финише — если флаг включён, добавляем время
+            // Время, потраченное на этот уровень (от первого шага на него до финиша)
+            long levelTotal = now - prog.getAttemptStart(id);
+
+            // Вывод сообщения о финише уровня
             if (plugin.getGame().isShowTime()) {
+                String timeStr = String.format("%.2f", elapsed / 1000.0);
                 p.sendMessage(ColorUtil.get(cfg.getFinishMessage() + " &7(&e" + timeStr + "&7 сек.)"));
             } else {
                 p.sendMessage(ColorUtil.get(cfg.getFinishMessage()));
             }
 
-            plugin.getGame().onMazeFinished(p, this, elapsed, realElapsed);
+            plugin.getGame().onMazeFinished(p, this, elapsed, levelTotal);
         }
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             reset();
             activePlayers.clear();
-        }, 60L);
+        }, 8L);
     }
-
-    // ===================== СБРОС =====================
 
     public void reset() {
         if (world == null) return;
-
         for (Game.BlockKey key : mazeBlocks) {
             Block b = world.getBlockAt(key.x, key.y, key.z);
             b.setType(Material.PACKED_ICE);
@@ -235,8 +213,6 @@ public class Maze {
         timerRunning = false;
         state = GameState.WAITING;
     }
-
-    // ===================== ГЕТТЕРЫ =====================
 
     public String getId() { return id; }
     public GameState getState() { return state; }
