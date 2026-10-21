@@ -6,6 +6,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.lordalex.clackedicelcp.Commands.EventCommand;
 import org.lordalex.clackedicelcp.Commands.IceCommand;
+import org.lordalex.clackedicelcp.Events.DeathListener;
 import org.lordalex.clackedicelcp.Events.MoveListener;
 import org.lordalex.clackedicelcp.Events.QuitListener;
 import org.lordalex.clackedicelcp.Platforms.PlatformManager;
@@ -29,6 +30,7 @@ public final class ClackedIceLCP extends JavaPlugin {
     public void onEnable() {
         instance = this;
         Bukkit.getPluginManager().registerEvents(new SnowmanListener(), this);
+        Bukkit.getPluginManager().registerEvents(new DeathListener(this), this);
 
         try {
             File file = new File(getDataFolder(), "config.yml");
@@ -42,7 +44,7 @@ public final class ClackedIceLCP extends JavaPlugin {
             }
 
             this.game = new Game(this);
-            game.loadAll(config.getMazes(), config.isShowTime());
+            game.loadAll(config.getMazes(), config.isShowTime(), config.getLevel());
 
             Bukkit.getPluginManager().registerEvents(new MoveListener(this), this);
             Bukkit.getPluginManager().registerEvents(new QuitListener(this), this);

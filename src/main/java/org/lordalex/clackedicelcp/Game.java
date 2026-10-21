@@ -1,9 +1,13 @@
 package org.lordalex.clackedicelcp;
 
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.lordalex.clackedicelcp.Utils.ColorUtil;
+import org.lordalex.clackedicelcp.Utils.ConfigLevel;
 import org.lordalex.clackedicelcp.Utils.ConfigMaze;
+import org.lordalex.clackedicelcp.Utils.YmlParser;
+
 import java.util.*;
 
 public class Game {
@@ -14,6 +18,7 @@ public class Game {
     private final Map<UUID, PlayerProgress> progressMap = new HashMap<>();
     private boolean showTime = false;
     private GameMode gameMode = GameMode.DEFAULT;
+    private Location levelSpawn;
 
     private final Map<UUID, PlayerStats> statsMap = new HashMap<>();
     private boolean eventRunning = false;
@@ -32,8 +37,21 @@ public class Game {
 
     public Game(ClackedIceLCP plugin) { this.plugin = plugin; }
 
-    public void loadAll(Map<String, ConfigMaze> configs, boolean showTime) {
+    public void loadAll(Map<String, ConfigMaze> configs, boolean showTime, ConfigLevel levelCfg) {
         this.showTime = showTime;
+
+        // Загружаем спавн
+        if (levelCfg != null && levelCfg.getSpawn() != null) {
+            // Берем мир из первого лабиринта (или можно добавить world в ConfigLevel)
+            String worldName = "world";
+            if (!configs.isEmpty()) {
+                worldName = configs.values().iterator().next().getWorld();
+            }
+            org.bukkit.World w = org.bukkit.Bukkit.getWorld(worldName);
+            if (w != null) {
+                this.levelSpawn = YmlParser.parseLocation(w, levelCfg.getSpawn());
+            }
+        }
         mazes.clear();
         orderedMazeIds.clear();
         for (Map.Entry<String, ConfigMaze> e : configs.entrySet()) {
@@ -42,6 +60,7 @@ public class Game {
         }
     }
 
+    public Location getLevelSpawn() { return levelSpawn; }
     public boolean isShowTime() { return showTime; }
     public void setShowTime(boolean b) { this.showTime = b; }
     public GameMode getGameMode() { return gameMode; }

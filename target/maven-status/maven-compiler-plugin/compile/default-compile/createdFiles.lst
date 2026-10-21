@@ -9,11 +9,13 @@ org\lordalex\clackedicelcp\Platforms\MovingPlatform$1.class
 org\lordalex\clackedicelcp\Platforms\BlinkingPlatform$2.class
 org\lordalex\clackedicelcp\Snowmen\SnowmanTrap$1.class
 org\lordalex\clackedicelcp\Utils\YmlParser.class
+org\lordalex\clackedicelcp\Events\DeathListener.class
 org\lordalex\clackedicelcp\Events\QuitListener.class
 org\lordalex\clackedicelcp\Game.class
 org\lordalex\clackedicelcp\Scoreboard\ScoreboardManager.class
 org\lordalex\clackedicelcp\Commands\IceCommand.class
 org\lordalex\clackedicelcp\GameState.class
+org\lordalex\clackedicelcp\Utils\ConfigLevel.class
 org\lordalex\clackedicelcp\Snowmen\SnowmanManager.class
 org\lordalex\clackedicelcp\Platforms\BlinkingPlatform.class
 org\lordalex\clackedicelcp\Platforms\Platform.class

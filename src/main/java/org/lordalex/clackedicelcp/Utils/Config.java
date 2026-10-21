@@ -2,7 +2,6 @@ package org.lordalex.clackedicelcp.Utils;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -10,6 +9,9 @@ public class Config {
 
     @JsonProperty("show_time")
     private boolean showTime = false;
+
+    @JsonProperty("level")
+    private ConfigLevel level;
 
     @JsonProperty("mazes")
     private Map<String, ConfigMaze> mazes;
@@ -20,7 +22,9 @@ public class Config {
     @JsonProperty("snowmen")
     private Map<String, ConfigSnowman> snowmen;
 
+    // Геттеры и сеттеры
     public boolean isShowTime() { return showTime; }
+    public ConfigLevel getLevel() { return level; }
     public Map<String, ConfigMaze> getMazes() { return mazes; }
     public Map<String, ConfigPlatform> getPlatforms() { return platforms; }
     public Map<String, ConfigSnowman> getSnowmen() { return snowmen; }
