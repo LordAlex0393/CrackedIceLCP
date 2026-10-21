@@ -14,7 +14,15 @@ public class Config {
     @JsonProperty("mazes")
     private Map<String, ConfigMaze> mazes;
 
+    @JsonProperty("platforms")
+    private Map<String, ConfigPlatform> platforms;
+
     public boolean isShowTime() { return showTime; }
     public Map<String, ConfigMaze> getMazes() { return mazes; }
+
+    // Тот самый геттер:
+    public Map<String, ConfigPlatform> getPlatforms() { return platforms; }
+
     public void setMazes(Map<String, ConfigMaze> mazes) { this.mazes = mazes; }
+    public void setPlatforms(Map<String, ConfigPlatform> platforms) { this.platforms = platforms; }
 }

@@ -4,9 +4,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
+import org.lordalex.clackedicelcp.Commands.EventCommand;
 import org.lordalex.clackedicelcp.Commands.IceCommand;
 import org.lordalex.clackedicelcp.Events.MoveListener;
 import org.lordalex.clackedicelcp.Events.QuitListener;
+import org.lordalex.clackedicelcp.Platforms.PlatformManager;
 import org.lordalex.clackedicelcp.Utils.Config;
 import org.lordalex.clackedicelcp.Utils.YmlParser;
 
@@ -15,6 +17,7 @@ import java.io.File;
 public final class ClackedIceLCP extends JavaPlugin {
     private static ClackedIceLCP instance;
     private Game game;
+    private PlatformManager platformManager;
 
     @Override
     public void onEnable() {
@@ -43,6 +46,12 @@ public final class ClackedIceLCP extends JavaPlugin {
                 getLogger().severe("Command 'icemaze' not found in plugin.yml!");
             }
 
+            this.platformManager = new PlatformManager(this);
+            if (config.getPlatforms() != null) {
+                platformManager.loadAll(config.getPlatforms());
+            }
+            getCommand("event").setExecutor(new EventCommand(this));
+
             BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
             scheduler.scheduleSyncRepeatingTask(this, () -> {
                 for (World world : Bukkit.getServer().getWorlds()) {
@@ -61,10 +70,15 @@ public final class ClackedIceLCP extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        platformManager.stopAll();
         if (game != null) game.resetAll();
         instance = null;
     }
 
     public static ClackedIceLCP getInstance() { return instance; }
     public Game getGame() { return game; }
+
+    public PlatformManager getPlatformManager() {
+        return platformManager;
+    }
 }

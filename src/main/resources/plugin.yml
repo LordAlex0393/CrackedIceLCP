@@ -5,3 +5,6 @@ commands:
   icemaze:
     description: Управление мини-игрой
     usage: /icemaze <reset>
+  event:
+    description: Управление ивентами
+    usage: /event <start|stop|reset>
