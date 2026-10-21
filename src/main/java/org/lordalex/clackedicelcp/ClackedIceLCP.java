@@ -9,6 +9,8 @@ import org.lordalex.clackedicelcp.Commands.IceCommand;
 import org.lordalex.clackedicelcp.Events.MoveListener;
 import org.lordalex.clackedicelcp.Events.QuitListener;
 import org.lordalex.clackedicelcp.Platforms.PlatformManager;
+import org.lordalex.clackedicelcp.Scoreboard.ScoreboardListener;
+import org.lordalex.clackedicelcp.Scoreboard.ScoreboardManager;
 import org.lordalex.clackedicelcp.Snowmen.SnowmanListener;
 import org.lordalex.clackedicelcp.Snowmen.SnowmanManager;
 import org.lordalex.clackedicelcp.Utils.Config;
@@ -21,6 +23,7 @@ public final class ClackedIceLCP extends JavaPlugin {
     private Game game;
     private PlatformManager platformManager;
     private SnowmanManager snowmanManager;
+    private ScoreboardManager scoreboardManager;
 
     @Override
     public void onEnable() {
@@ -61,6 +64,9 @@ public final class ClackedIceLCP extends JavaPlugin {
                 snowmanManager.loadAll(config.getSnowmen());
             }
 
+            this.scoreboardManager = new ScoreboardManager(this);
+            Bukkit.getPluginManager().registerEvents(new ScoreboardListener(this), this); // Чтобы создавать табло при входе
+
             BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
             scheduler.scheduleSyncRepeatingTask(this, () -> {
                 for (World world : Bukkit.getServer().getWorlds()) {
@@ -92,4 +98,5 @@ public final class ClackedIceLCP extends JavaPlugin {
     public PlatformManager getPlatformManager() {
         return platformManager;
     }
+    public ScoreboardManager getScoreboardManager() { return scoreboardManager; }
 }

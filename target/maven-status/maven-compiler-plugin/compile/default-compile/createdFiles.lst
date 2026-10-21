@@ -11,11 +11,13 @@ org\lordalex\clackedicelcp\Snowmen\SnowmanTrap$1.class
 org\lordalex\clackedicelcp\Utils\YmlParser.class
 org\lordalex\clackedicelcp\Events\QuitListener.class
 org\lordalex\clackedicelcp\Game.class
+org\lordalex\clackedicelcp\Scoreboard\ScoreboardManager.class
 org\lordalex\clackedicelcp\Commands\IceCommand.class
 org\lordalex\clackedicelcp\GameState.class
 org\lordalex\clackedicelcp\Snowmen\SnowmanManager.class
 org\lordalex\clackedicelcp\Platforms\BlinkingPlatform.class
 org\lordalex\clackedicelcp\Platforms\Platform.class
+org\lordalex\clackedicelcp\Scoreboard\ScoreboardListener.class
 org\lordalex\clackedicelcp\Utils\ConfigPlatform.class
 org\lordalex\clackedicelcp\PlayerProgress.class
 org\lordalex\clackedicelcp\Utils\ConfigMazes.class
@@ -26,5 +28,7 @@ org\lordalex\clackedicelcp\Snowmen\SnowmanTrap.class
 org\lordalex\clackedicelcp\ClackedIceLCP.class
 org\lordalex\clackedicelcp\GameMode.class
 org\lordalex\clackedicelcp\Platforms\BlinkingPlatform$1.class
+org\lordalex\clackedicelcp\PlayerStats.class
+org\lordalex\clackedicelcp\Scoreboard\ScoreboardManager$1.class
 org\lordalex\clackedicelcp\PlayerInfo.class
 org\lordalex\clackedicelcp\Utils\ConfigSnowman.class

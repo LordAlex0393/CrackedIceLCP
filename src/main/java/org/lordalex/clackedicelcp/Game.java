@@ -15,6 +15,17 @@ public class Game {
     private boolean showTime = false;
     private GameMode gameMode = GameMode.DEFAULT;
 
+    private final Map<UUID, PlayerStats> statsMap = new HashMap<>();
+
+    public PlayerStats getStats(UUID uuid) {
+        return statsMap.computeIfAbsent(uuid, k -> new PlayerStats());
+    }
+
+    // Временный метод для теста (потом заменишь на реальные квесты)
+    public String getCurrentQuestName() {
+        return "Убить босса Зомби Мороза";
+    }
+
     public Game(ClackedIceLCP plugin) { this.plugin = plugin; }
 
     public void loadAll(Map<String, ConfigMaze> configs, boolean showTime) {
